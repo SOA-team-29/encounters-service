@@ -14,10 +14,8 @@ import (
 	"gorm.io/gorm"
 )
 
-//nil - pokazivac ne pokazuje ni na sta
-
 func initDB() *gorm.DB {
-	dsn := "user=postgres password=super dbname=SOA host=localhost port=5432 sslmode=disable search_path=encounters"
+	dsn := "user=postgres password=super dbname=SOA host=localhost port=5432 sslmode=disable"
 	database, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		print(err)
