@@ -6,9 +6,11 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
-	"strconv"
+	"strings"
 
 	"github.com/gorilla/mux"
+	"github.com/mitchellh/mapstructure"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type EncounterHandler struct {
@@ -22,28 +24,43 @@ func (handler *EncounterHandler) Get(writer http.ResponseWriter, req *http.Reque
 }
 
 func (handler *EncounterHandler) Create(writer http.ResponseWriter, req *http.Request) {
+	log.Println("usao u create encounter")
 	var encounter model.Encounter
-	err := json.NewDecoder(req.Body).Decode(&encounter) //dekodiranje json zahteva
+	err := json.NewDecoder(req.Body).Decode(&encounter)
 	if err != nil {
 		println("Error while parsing json")
 		println("Greska:", err.Error())
 		writer.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	err = handler.EncounterService.Create(&encounter)
+
+	createdEncounter, err := handler.EncounterService.Create(&encounter)
 	if err != nil {
 		println("Error while creating a new encounter")
 		writer.WriteHeader(http.StatusExpectationFailed)
 		return
 	}
+	log.Println(createdEncounter)
 	writer.WriteHeader(http.StatusCreated)
 	writer.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(writer).Encode(encounter)
+
+	response := map[string]interface{}{
+		"id":               createdEncounter.ID.Hex(),
+		"name":             createdEncounter.Name,
+		"description":      createdEncounter.Description,
+		"xpPoints":         createdEncounter.XpPoints,
+		"status":           createdEncounter.Status,
+		"type":             createdEncounter.Type,
+		"latitude":         createdEncounter.Latitude,
+		"longitude":        createdEncounter.Longitude,
+		"shouldBeApproved": createdEncounter.ShouldBeApproved,
+	}
+	log.Println(response)
+	json.NewEncoder(writer).Encode(response)
 }
 
 func (handler *EncounterHandler) CreateSocialEncounter(writer http.ResponseWriter, req *http.Request) {
-	//ResponseWriter - pisanje odgovora
-	//Request - dolazni zahtev
+	log.Println("usao u create Socialencounter")
 	var encounter model.SocialEncounter
 	err := json.NewDecoder(req.Body).Decode(&encounter)
 	if err != nil {
@@ -64,15 +81,16 @@ func (handler *EncounterHandler) CreateSocialEncounter(writer http.ResponseWrite
 }
 
 func (handler *EncounterHandler) CreateHiddenLocationEncounter(writer http.ResponseWriter, req *http.Request) {
-
+	log.Println("usao u create HiddLocEnc")
 	var encounter model.HiddenLocationEncounter
-	err := json.NewDecoder(req.Body).Decode(&encounter) //dekodiranje json zahteva
+	err := json.NewDecoder(req.Body).Decode(&encounter)
 	if err != nil {
 		println("Error while parsing json")
 		println("Greska:", err.Error())
 		writer.WriteHeader(http.StatusBadRequest)
 		return
 	}
+	log.Println(encounter)
 	err = handler.EncounterService.CreateHiddenLocationEncounter(&encounter)
 	if err != nil {
 		println("Error while creating a new encounter")
@@ -85,82 +103,154 @@ func (handler *EncounterHandler) CreateHiddenLocationEncounter(writer http.Respo
 }
 
 func (h *EncounterHandler) GetAllEncounters(w http.ResponseWriter, r *http.Request) {
+	log.Println("usao u get all enc ")
 	encounters, err := h.EncounterService.GetAllEncounters()
 	if err != nil {
 		http.Error(w, "Error getting encounters", http.StatusInternalServerError)
 		return
 	}
+	log.Println(encounters)
 
-	// Konvertujemo susrete u JSON format
-	encountersJSON, err := json.Marshal(encounters)
-	if err != nil {
-		http.Error(w, "Error converting encounters to JSON", http.StatusInternalServerError)
-		return
-	}
+	modifiedJSON := modifyEncountersJSON(encounters)
 
-	// Postavljamo Content-Type zaglavlje na application/json
 	w.Header().Set("Content-Type", "application/json")
-
-	// Šaljemo odgovor sa susretima u JSON formatu
 	w.WriteHeader(http.StatusOK)
-	w.Write(encountersJSON)
+	w.Write([]byte(modifiedJSON))
+}
+
+func modifyEncountersJSON(encounters []*model.Encounter) string {
+
+	var modifiedJSON strings.Builder
+	modifiedJSON.WriteString("[")
+	for i, encounter := range encounters {
+		encounterJSON, err := json.Marshal(encounter)
+		if err != nil {
+			log.Printf("Error marshaling encounter %d: %s\n", i, err.Error())
+			continue
+		}
+
+		encounterJSONString := string(encounterJSON)
+		encounterJSONString = strings.Replace(encounterJSONString, "\"_id\"", "\"id\"", 1)
+
+		modifiedJSON.WriteString(encounterJSONString)
+
+		if i < len(encounters)-1 {
+			modifiedJSON.WriteString(",")
+		}
+	}
+	modifiedJSON.WriteString("]")
+	return modifiedJSON.String()
 }
 
 func (h *EncounterHandler) GetAllSocialEncounters(w http.ResponseWriter, r *http.Request) {
-	// Ovde bi trebalo da dobijemo sve susrete iz baze podataka
+	log.Println("usao u get all Socenc ")
 	encounters, err := h.EncounterService.GetAllSocialEncounters()
 	if err != nil {
-		// Ukoliko dođe do greške prilikom dobijanja susreta, vraćamo odgovarajući status i poruku o grešci
 		http.Error(w, "Error getting encounters", http.StatusInternalServerError)
 		return
 	}
+	log.Println(encounters)
 
-	// Konvertujemo susrete u JSON format
-	encountersJSON, err := json.Marshal(encounters)
-	if err != nil {
-		// Ukoliko dođe do greške prilikom konvertovanja u JSON, vraćamo odgovarajući status i poruku o grešci
-		http.Error(w, "Error converting encounters to JSON", http.StatusInternalServerError)
-		return
-	}
+	modifiedJSON := modifyEncountersJSONsoc(encounters)
 
-	// Postavljamo Content-Type zaglavlje na application/json
 	w.Header().Set("Content-Type", "application/json")
-
-	// Šaljemo odgovor sa susretima u JSON formatu
 	w.WriteHeader(http.StatusOK)
-	w.Write(encountersJSON)
+	w.Write([]byte(modifiedJSON))
+}
+
+func modifyEncountersJSONsoc(encounters []*model.SocialEncounter) string {
+
+	var modifiedJSON strings.Builder
+	modifiedJSON.WriteString("[")
+	for i, encounter := range encounters {
+		encounterJSON, err := json.Marshal(encounter)
+		if err != nil {
+			log.Printf("Error marshaling encounter %d: %s\n", i, err.Error())
+			continue
+		}
+
+		encounterJSONString := string(encounterJSON)
+		encounterJSONString = strings.Replace(encounterJSONString, "\"_id\"", "\"id\"", 1)
+
+		modifiedJSON.WriteString(encounterJSONString)
+
+		if i < len(encounters)-1 {
+			modifiedJSON.WriteString(",")
+		}
+	}
+	modifiedJSON.WriteString("]")
+	return modifiedJSON.String()
 }
 
 func (h *EncounterHandler) GetAllHiddenLocationEncounters(w http.ResponseWriter, r *http.Request) {
-	// Ovde bi trebalo da dobijemo sve susrete iz baze podataka
+	log.Println("usao u get all Hiddenc ")
 	encounters, err := h.EncounterService.GetAllHiddenLocationEncounters()
 	if err != nil {
-		// Ukoliko dođe do greške prilikom dobijanja susreta, vraćamo odgovarajući status i poruku o grešci
 		http.Error(w, "Error getting encounters", http.StatusInternalServerError)
 		return
 	}
+	log.Println(encounters)
 
-	// Konvertujemo susrete u JSON format
-	encountersJSON, err := json.Marshal(encounters)
-	if err != nil {
-		// Ukoliko dođe do greške prilikom konvertovanja u JSON, vraćamo odgovarajući status i poruku o grešci
-		http.Error(w, "Error converting encounters to JSON", http.StatusInternalServerError)
-		return
-	}
+	modifiedJSON := modifyEncountersJSONhidd(encounters)
 
-	// Postavljamo Content-Type zaglavlje na application/json
 	w.Header().Set("Content-Type", "application/json")
-
-	// Šaljemo odgovor sa susretima u JSON formatu
 	w.WriteHeader(http.StatusOK)
-	w.Write(encountersJSON)
+	w.Write([]byte(modifiedJSON))
+}
+
+func modifyEncountersJSONhidd(encounters []*model.HiddenLocationEncounter) string {
+
+	var modifiedJSON strings.Builder
+	modifiedJSON.WriteString("[")
+	for i, encounter := range encounters {
+		encounterJSON, err := json.Marshal(encounter)
+		if err != nil {
+			log.Printf("Error marshaling encounter %d: %s\n", i, err.Error())
+			continue
+		}
+
+		encounterJSONString := string(encounterJSON)
+		encounterJSONString = strings.Replace(encounterJSONString, "\"_id\"", "\"id\"", 1)
+
+		modifiedJSON.WriteString(encounterJSONString)
+
+		if i < len(encounters)-1 {
+			modifiedJSON.WriteString(",")
+		}
+	}
+	modifiedJSON.WriteString("]")
+	return modifiedJSON.String()
 }
 
 func (handler *EncounterHandler) Update(writer http.ResponseWriter, req *http.Request) {
 	var encounter model.Encounter
-	err := json.NewDecoder(req.Body).Decode(&encounter)
+	log.Println("usao u update enc")
+	// Dekodiranje JSON-a u mapu kao intermedijernu strukturu
+	var encounterMap map[string]interface{}
+	err := json.NewDecoder(req.Body).Decode(&encounterMap)
 	if err != nil {
 		println("Error while parsing json")
+		println("Greska:", err.Error())
+		writer.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	log.Println(encounterMap)
+	// Konverzija ID-a iz stringa u primitive.ObjectID
+	if id, ok := encounterMap["Id"].(string); ok {
+		objID, err := primitive.ObjectIDFromHex(id)
+		if err != nil {
+			println("Error converting ID to ObjectID")
+			writer.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		encounterMap["Id"] = objID
+		log.Println(objID)
+	}
+
+	// Konvertovanje mape u strukturu
+	err = mapstructure.Decode(encounterMap, &encounter)
+	if err != nil {
+		println("Error while decoding json")
 		println("Greska:", err.Error())
 		writer.WriteHeader(http.StatusBadRequest)
 		return
@@ -180,9 +270,33 @@ func (handler *EncounterHandler) Update(writer http.ResponseWriter, req *http.Re
 
 func (handler *EncounterHandler) UpdateHiddenLocationEncounter(writer http.ResponseWriter, req *http.Request) {
 	var encounter model.HiddenLocationEncounter
-	err := json.NewDecoder(req.Body).Decode(&encounter)
+	log.Println("usao u update hidd")
+	// Dekodiranje JSON-a u mapu kao intermedijernu strukturu
+	var encounterMap map[string]interface{}
+	err := json.NewDecoder(req.Body).Decode(&encounterMap)
 	if err != nil {
 		println("Error while parsing json")
+		println("Greska:", err.Error())
+		writer.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	log.Println(encounterMap)
+	// Konverzija ID-a iz stringa u primitive.ObjectID
+	if id, ok := encounterMap["Id"].(string); ok {
+		objID, err := primitive.ObjectIDFromHex(id)
+		if err != nil {
+			println("Error converting ID to ObjectID")
+			writer.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		encounterMap["Id"] = objID
+		log.Println(objID)
+	}
+
+	// Konvertovanje mape u strukturu
+	err = mapstructure.Decode(encounterMap, &encounter)
+	if err != nil {
+		println("Error while decoding json")
 		println("Greska:", err.Error())
 		writer.WriteHeader(http.StatusBadRequest)
 		return
@@ -202,9 +316,30 @@ func (handler *EncounterHandler) UpdateHiddenLocationEncounter(writer http.Respo
 
 func (handler *EncounterHandler) UpdateSocialEncounter(writer http.ResponseWriter, req *http.Request) {
 	var encounter model.SocialEncounter
-	err := json.NewDecoder(req.Body).Decode(&encounter)
+	log.Println("usao u update soc")
+	var encounterMap map[string]interface{}
+	err := json.NewDecoder(req.Body).Decode(&encounterMap)
 	if err != nil {
 		println("Error while parsing json")
+		println("Greska:", err.Error())
+		writer.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	log.Println(encounterMap)
+	if id, ok := encounterMap["Id"].(string); ok {
+		objID, err := primitive.ObjectIDFromHex(id)
+		if err != nil {
+			println("Error converting ID to ObjectID")
+			writer.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		encounterMap["Id"] = objID
+		log.Println(objID)
+	}
+
+	err = mapstructure.Decode(encounterMap, &encounter)
+	if err != nil {
+		println("Error while decoding json")
 		println("Greska:", err.Error())
 		writer.WriteHeader(http.StatusBadRequest)
 		return
@@ -221,6 +356,25 @@ func (handler *EncounterHandler) UpdateSocialEncounter(writer http.ResponseWrite
 	writer.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(writer).Encode(encounter)
 }
+
+func (handler *EncounterHandler) DeleteEncounter(writer http.ResponseWriter, req *http.Request) {
+	log.Println("usao u delete enc")
+	vars := mux.Vars(req)
+	baseEncounterID := vars["baseEncounterId"]
+	log.Println(baseEncounterID)
+
+	err := handler.EncounterService.DeleteEncounter(baseEncounterID)
+	if err != nil {
+		log.Println("Error deleting encounter:", err)
+		http.Error(writer, "Error deleting encounter", http.StatusInternalServerError)
+		return
+	}
+
+	// Ako je brisanje uspešno, vraćamo status 204 No Content
+	writer.WriteHeader(http.StatusNoContent)
+}
+
+/*
 
 func (handler *EncounterHandler) GetSocialEncounterId(writer http.ResponseWriter, req *http.Request) {
 	baseEncounterId, err := strconv.Atoi(mux.Vars(req)["baseEncounterId"])
@@ -316,27 +470,7 @@ func (handler *EncounterHandler) DeleteHiddenLocationEncounter(writer http.Respo
 	writer.WriteHeader(http.StatusOK)
 }
 
-func (handler *EncounterHandler) DeleteEncounter(writer http.ResponseWriter, req *http.Request) {
-	// Uzimanje ID-ja susreta iz putanje zahteva
-	vars := mux.Vars(req)
-	baseEncounterID, err := strconv.Atoi(vars["baseEncounterId"])
-	if err != nil {
-		log.Println("Error converting baseEncounterId to int:", err)
-		http.Error(writer, "Invalid baseEncounterId", http.StatusBadRequest)
-		return
-	}
 
-	// Pozivanje odgovarajuće funkcije za brisanje susreta iz servisa
-	err = handler.EncounterService.DeleteEncounter(baseEncounterID)
-	if err != nil {
-		log.Println("Error deleting encounter:", err)
-		http.Error(writer, "Error deleting encounter", http.StatusInternalServerError)
-		return
-	}
-
-	// Ako je brisanje uspešno, vraćamo status 204 No Content
-	writer.WriteHeader(http.StatusNoContent)
-}
 
 // GetHiddenLocationEncounterByEncounterId handles the GET request for getting a hidden location encounter by encounter ID
 func (handler *EncounterHandler) GetHiddenLocationEncounterByEncounterId(w http.ResponseWriter, r *http.Request) {
@@ -410,4 +544,4 @@ func (handler *EncounterHandler) GetEncounterById(w http.ResponseWriter, r *http
 
 	//json odgovor se pise u http.ResponseWriter sto ce se proslediti kao odgovor
 	w.Write(responseJSON)
-}
+}*/

@@ -1,9 +1,11 @@
 package model
 
+import "go.mongodb.org/mongo-driver/bson/primitive"
+
 type SocialEncounter struct {
-	ID                            int     `json:"id" gorm:"column:id;primaryKey;autoIncrement"`
-	EncounterID                   int     `json:"encounterId" gorm:"foreignKey:EncounterID"`
-	TouristsRequiredForCompletion int     `json:"touristsRequiredForCompletion"`
-	DistanceTreshold              float64 `json:"distanceTreshold"`
-	TouristIDs                    []int   `json:"touristIDs" gorm:"type:integer[]"`
+	ID                            primitive.ObjectID `json:"_id,omitempty" bson:"_id,omitempty"`
+	EncounterID                   string             `json:"encounterId"`
+	TouristsRequiredForCompletion int                `json:"touristsRequiredForCompletion"`
+	DistanceTreshold              float64            `json:"distanceTreshold"`
+	TouristIDs                    []int              `json:"touristIDs"`
 }

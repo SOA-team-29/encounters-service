@@ -12,12 +12,13 @@ type EncounterService struct {
 	EncounterRepo *repo.EncounterRepository
 }
 
-func (service *EncounterService) Create(encounter *model.Encounter) error {
-	err := service.EncounterRepo.CreateEncounter(encounter)
+func (service *EncounterService) Create(encounter *model.Encounter) (*model.Encounter, error) {
+	createdEncounter, err := service.EncounterRepo.CreateEncounter(encounter)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return nil
+
+	return createdEncounter, nil
 }
 
 func (service *EncounterService) CreateSocialEncounter(encounter *model.SocialEncounter) error {
@@ -48,10 +49,8 @@ func (s *EncounterService) GetAllEncounters() ([]*model.Encounter, error) {
 }
 
 func (s *EncounterService) GetAllHiddenLocationEncounters() ([]*model.HiddenLocationEncounter, error) {
-	// Poziv baze podataka ili nekog drugog skladišta podataka da dobijemo sve susrete
 	encounters, err := s.EncounterRepo.GetAllHiddenLocationEncounters()
 	if err != nil {
-		// Ukoliko dođe do greške, vraćamo praznu listu i grešku
 		return nil, err
 	}
 
@@ -59,10 +58,8 @@ func (s *EncounterService) GetAllHiddenLocationEncounters() ([]*model.HiddenLoca
 }
 
 func (s *EncounterService) GetAllSocialEncounters() ([]*model.SocialEncounter, error) {
-	// Poziv baze podataka ili nekog drugog skladišta podataka da dobijemo sve susrete
 	encounters, err := s.EncounterRepo.GetAllSocialEncounters()
 	if err != nil {
-		// Ukoliko dođe do greške, vraćamo praznu listu i grešku
 		return nil, err
 	}
 
@@ -85,14 +82,12 @@ func (s *EncounterService) Update(encounter *model.Encounter) error {
 }
 
 func (s *EncounterService) UpdateHiddenLocationEncounter(encounter *model.HiddenLocationEncounter) error {
-	// Ažuriranje susreta u repozitorijumu
+
 	err := s.EncounterRepo.UpdateHiddenLocationEncounter(encounter)
 	if err != nil {
-		// Provera da li je susret pronađen
 		if errors.Is(err, ErrEncounterNotFound) {
 			return ErrEncounterNotFound
 		}
-		// Vraćanje drugih grešaka ako se nešto drugo dogodi
 		return err
 	}
 
@@ -100,19 +95,29 @@ func (s *EncounterService) UpdateHiddenLocationEncounter(encounter *model.Hidden
 }
 
 func (s *EncounterService) UpdateSocialEncounter(encounter *model.SocialEncounter) error {
-	// Ažuriranje susreta u repozitorijumu
+
 	err := s.EncounterRepo.UpdateSocialEncounter(encounter)
 	if err != nil {
-		// Provera da li je susret pronađen
 		if errors.Is(err, ErrEncounterNotFound) {
 			return ErrEncounterNotFound
 		}
-		// Vraćanje drugih grešaka ako se nešto drugo dogodi
 		return err
 	}
 
 	return nil
 }
+
+func (s *EncounterService) DeleteEncounter(baseEncounterID string) error {
+
+	err := s.EncounterRepo.DeleteEncounter(baseEncounterID)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+/*
+
 
 func (s *EncounterService) GetHiddenLocationEncounterId(baseEncounterID int) (int, error) {
 	// Pozivamo odgovarajuću funkciju u repozitorijumu za pronalaženje ID-a skrivenog lokacijskog susreta
@@ -165,15 +170,7 @@ func (s *EncounterService) DeleteHiddenLocationEncounter(hiddenLocationEncounter
 	return nil
 }
 
-func (s *EncounterService) DeleteEncounter(baseEncounterID int) error {
-	// Pozivamo funkciju u repozitorijumu za brisanje susreta
-	err := s.EncounterRepo.DeleteEncounter(baseEncounterID)
-	if err != nil {
-		// Ako dođe do greške prilikom brisanja, prosleđujemo je na viši nivo
-		return err
-	}
-	return nil
-}
+
 
 func (s *EncounterService) GetHiddenLocationEncounterByEncounterId(encounterId int) (*model.HiddenLocationEncounter, error) {
 	// Call the repository method to fetch the hidden location encounter by encounter ID
@@ -196,4 +193,4 @@ func (s *EncounterService) GetEncounterById(encounterId int) (*model.Encounter, 
 	}
 
 	return encounter, nil
-}
+}*/

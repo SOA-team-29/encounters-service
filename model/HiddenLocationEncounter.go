@@ -1,10 +1,12 @@
 package model
 
+import "go.mongodb.org/mongo-driver/bson/primitive"
+
 type HiddenLocationEncounter struct {
-	ID               int     `json:"id" gorm:"column:id;primaryKey;autoIncrement"`
-	ImageURL         string  `json:"imageURL"`
-	ImageLatitude    float64 `json:"imageLatitude"`
-	ImageLongitude   float64 `json:"imageLongitude"`
-	DistanceTreshold float64 `json:"distanceTreshold"`
-	EncounterID      int     `json:"encounterId" gorm:"foreignKey:EncounterID"`
+	ID               primitive.ObjectID `json:"_id,omitempty" bson:"_id,omitempty"`
+	ImageURL         string             `json:"imageURL"`
+	ImageLatitude    float64            `json:"imageLatitude"`
+	ImageLongitude   float64            `json:"imageLongitude"`
+	DistanceTreshold float64            `json:"distanceTreshold"`
+	EncounterID      string             `json:"encounterId"`
 }
