@@ -28,7 +28,7 @@ import (
 */
 func initDB() *mongo.Database {
 
-	clientOptions := options.Client().ApplyURI("mongodb://localhost:27017")
+	clientOptions := options.Client().ApplyURI("mongodb://mongo:27017")
 
 	// Connect to MongoDB
 	client, err := mongo.Connect(context.TODO(), clientOptions)
@@ -42,7 +42,7 @@ func initDB() *mongo.Database {
 	}
 
 	database := client.Database("SOAencounters")
-
+	log.Println("Successfully connected to MongoDB")
 	return database
 }
 
