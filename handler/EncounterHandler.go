@@ -19,28 +19,29 @@ type EncounterHandler struct {
 
 func (handler *EncounterHandler) Get(writer http.ResponseWriter, req *http.Request) {
 	id := mux.Vars(req)["id"]
-	log.Printf("Encounter sa id-em %s", id)
+
+	log.Printf("INFO: Request to get encounter with id: %s", id)
 	writer.WriteHeader(http.StatusOK)
 }
 
 func (handler *EncounterHandler) Create(writer http.ResponseWriter, req *http.Request) {
-	log.Println("usao u create encounter")
+	log.Println("INFO: Entered Create Encounter handler")
+
 	var encounter model.Encounter
 	err := json.NewDecoder(req.Body).Decode(&encounter)
 	if err != nil {
-		println("Error while parsing json")
-		println("Greska:", err.Error())
+		log.Printf("ERROR: Failed to parse JSON: %v", err)
 		writer.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
 	createdEncounter, err := handler.EncounterService.Create(&encounter)
 	if err != nil {
-		println("Error while creating a new encounter")
+		log.Printf("ERROR: Failed to create encounter: %v", err)
 		writer.WriteHeader(http.StatusExpectationFailed)
 		return
 	}
-	log.Println(createdEncounter)
+	log.Printf("INFO: Created encounter: %v", createdEncounter)
 	writer.WriteHeader(http.StatusCreated)
 	writer.Header().Set("Content-Type", "application/json")
 
@@ -55,61 +56,62 @@ func (handler *EncounterHandler) Create(writer http.ResponseWriter, req *http.Re
 		"longitude":        createdEncounter.Longitude,
 		"shouldBeApproved": createdEncounter.ShouldBeApproved,
 	}
-	log.Println(response)
+	log.Printf("INFO: Response data: %v", response)
 	json.NewEncoder(writer).Encode(response)
 }
 
 func (handler *EncounterHandler) CreateSocialEncounter(writer http.ResponseWriter, req *http.Request) {
-	log.Println("usao u create Socialencounter")
+	log.Println("INFO: Entered Create Social Encounter handler")
 	var encounter model.SocialEncounter
 	err := json.NewDecoder(req.Body).Decode(&encounter)
 	if err != nil {
-		println("Error while parsing json")
-		println("Greska:", err.Error())
+		log.Printf("ERROR: Failed to parse JSON: %v", err)
 		writer.WriteHeader(http.StatusBadRequest)
 		return
 	}
 	err = handler.EncounterService.CreateSocialEncounter(&encounter)
 	if err != nil {
-		println("Error while creating a new encounter")
+		log.Printf("ERROR: Failed to create social encounter: %v", err)
 		writer.WriteHeader(http.StatusExpectationFailed)
 		return
 	}
+	log.Printf("INFO: Created social encounter: %v", encounter)
 	writer.WriteHeader(http.StatusCreated)
 	writer.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(writer).Encode(encounter)
 }
 
 func (handler *EncounterHandler) CreateHiddenLocationEncounter(writer http.ResponseWriter, req *http.Request) {
-	log.Println("usao u create HiddLocEnc")
+	log.Println("INFO: Entered Create Hidden Location Encounter handler")
 	var encounter model.HiddenLocationEncounter
 	err := json.NewDecoder(req.Body).Decode(&encounter)
 	if err != nil {
-		println("Error while parsing json")
-		println("Greska:", err.Error())
+		log.Printf("ERROR: Failed to parse JSON: %v", err)
 		writer.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	log.Println(encounter)
+	log.Printf("INFO: Parsed encounter data: %v", encounter)
 	err = handler.EncounterService.CreateHiddenLocationEncounter(&encounter)
 	if err != nil {
-		println("Error while creating a new encounter")
+		log.Printf("ERROR: Failed to create hidden location encounter: %v", err)
 		writer.WriteHeader(http.StatusExpectationFailed)
 		return
 	}
+	log.Printf("INFO: Created hidden location encounter: %v", encounter)
 	writer.WriteHeader(http.StatusCreated)
 	writer.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(writer).Encode(encounter)
 }
 
 func (h *EncounterHandler) GetAllEncounters(w http.ResponseWriter, r *http.Request) {
-	log.Println("usao u get all enc ")
+	log.Println("INFO: Entered Get All Encounters handler")
 	encounters, err := h.EncounterService.GetAllEncounters()
 	if err != nil {
+		log.Printf("ERROR: Failed to get encounters: %v", err)
 		http.Error(w, "Error getting encounters", http.StatusInternalServerError)
 		return
 	}
-	log.Println(encounters)
+	log.Printf("INFO: Retrieved encounters: %v", encounters)
 
 	modifiedJSON := modifyEncountersJSON(encounters)
 
@@ -143,13 +145,14 @@ func modifyEncountersJSON(encounters []*model.Encounter) string {
 }
 
 func (h *EncounterHandler) GetAllSocialEncounters(w http.ResponseWriter, r *http.Request) {
-	log.Println("usao u get all Socenc ")
+	log.Println("INFO: Entered Get All Social Encounters handler")
 	encounters, err := h.EncounterService.GetAllSocialEncounters()
 	if err != nil {
+		log.Printf("ERROR: Failed to get social encounters: %v", err)
 		http.Error(w, "Error getting encounters", http.StatusInternalServerError)
 		return
 	}
-	log.Println(encounters)
+	log.Printf("INFO: Retrieved social encounters: %v", encounters)
 
 	modifiedJSON := modifyEncountersJSONsoc(encounters)
 
@@ -165,7 +168,7 @@ func modifyEncountersJSONsoc(encounters []*model.SocialEncounter) string {
 	for i, encounter := range encounters {
 		encounterJSON, err := json.Marshal(encounter)
 		if err != nil {
-			log.Printf("Error marshaling encounter %d: %s\n", i, err.Error())
+			log.Printf("ERROR: Error marshaling encounter %d: %s\n", i, err.Error())
 			continue
 		}
 
@@ -183,13 +186,14 @@ func modifyEncountersJSONsoc(encounters []*model.SocialEncounter) string {
 }
 
 func (h *EncounterHandler) GetAllHiddenLocationEncounters(w http.ResponseWriter, r *http.Request) {
-	log.Println("usao u get all Hiddenc ")
+	log.Println("INFO: Entered Get All Hidden Location Encounters handler")
 	encounters, err := h.EncounterService.GetAllHiddenLocationEncounters()
 	if err != nil {
+		log.Printf("ERROR: Failed to get hidden location encounters: %v", err)
 		http.Error(w, "Error getting encounters", http.StatusInternalServerError)
 		return
 	}
-	log.Println(encounters)
+	log.Printf("INFO: Retrieved hidden location encounters: %v", encounters)
 
 	modifiedJSON := modifyEncountersJSONhidd(encounters)
 
@@ -205,7 +209,7 @@ func modifyEncountersJSONhidd(encounters []*model.HiddenLocationEncounter) strin
 	for i, encounter := range encounters {
 		encounterJSON, err := json.Marshal(encounter)
 		if err != nil {
-			log.Printf("Error marshaling encounter %d: %s\n", i, err.Error())
+			log.Printf("ERROR: Error marshaling encounter %d: %s\n", i, err.Error())
 			continue
 		}
 
@@ -224,45 +228,43 @@ func modifyEncountersJSONhidd(encounters []*model.HiddenLocationEncounter) strin
 
 func (handler *EncounterHandler) Update(writer http.ResponseWriter, req *http.Request) {
 	var encounter model.Encounter
-	log.Println("usao u update enc")
+	log.Println("INFO: Entered Update Encounter handler")
 	// Dekodiranje JSON-a u mapu kao intermedijernu strukturu
 	var encounterMap map[string]interface{}
 	err := json.NewDecoder(req.Body).Decode(&encounterMap)
 	if err != nil {
-		println("Error while parsing json")
-		println("Greska:", err.Error())
+		log.Printf("ERROR: Failed to parse JSON: %v", err)
 		writer.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	log.Println(encounterMap)
+	log.Printf("INFO: Parsed encounter data: %v", encounterMap)
 	// Konverzija ID-a iz stringa u primitive.ObjectID
 	if id, ok := encounterMap["Id"].(string); ok {
 		objID, err := primitive.ObjectIDFromHex(id)
 		if err != nil {
-			println("Error converting ID to ObjectID")
+			log.Printf("ERROR: Failed to convert ID to ObjectID: %v", err)
 			writer.WriteHeader(http.StatusBadRequest)
 			return
 		}
 		encounterMap["Id"] = objID
-		log.Println(objID)
+		log.Printf("INFO: Converted ID to ObjectID: %v", objID)
 	}
 
 	// Konvertovanje mape u strukturu
 	err = mapstructure.Decode(encounterMap, &encounter)
 	if err != nil {
-		println("Error while decoding json")
-		println("Greska:", err.Error())
+		log.Printf("ERROR: Failed to decode JSON to struct: %v", err)
 		writer.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
 	err = handler.EncounterService.Update(&encounter)
 	if err != nil {
-		println("Error while updating the encounter")
+		log.Printf("ERROR: Failed to update encounter: %v", err)
 		writer.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-
+	log.Printf("INFO: Updated encounter: %v", encounter)
 	writer.WriteHeader(http.StatusOK)
 	writer.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(writer).Encode(encounter)
@@ -270,45 +272,43 @@ func (handler *EncounterHandler) Update(writer http.ResponseWriter, req *http.Re
 
 func (handler *EncounterHandler) UpdateHiddenLocationEncounter(writer http.ResponseWriter, req *http.Request) {
 	var encounter model.HiddenLocationEncounter
-	log.Println("usao u update hidd")
+	log.Println("INFO: Entered Update Hidden Location Encounter handler")
 	// Dekodiranje JSON-a u mapu kao intermedijernu strukturu
 	var encounterMap map[string]interface{}
 	err := json.NewDecoder(req.Body).Decode(&encounterMap)
 	if err != nil {
-		println("Error while parsing json")
-		println("Greska:", err.Error())
+		log.Printf("ERROR: Failed to parse JSON: %v", err)
 		writer.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	log.Println(encounterMap)
+	log.Printf("INFO: Parsed hidden location encounter data: %v", encounterMap)
 	// Konverzija ID-a iz stringa u primitive.ObjectID
 	if id, ok := encounterMap["Id"].(string); ok {
 		objID, err := primitive.ObjectIDFromHex(id)
 		if err != nil {
-			println("Error converting ID to ObjectID")
+			log.Printf("ERROR: Failed to convert ID to ObjectID: %v", err)
 			writer.WriteHeader(http.StatusBadRequest)
 			return
 		}
 		encounterMap["Id"] = objID
-		log.Println(objID)
+		log.Printf("INFO: Converted ID to ObjectID: %v", objID)
 	}
 
 	// Konvertovanje mape u strukturu
 	err = mapstructure.Decode(encounterMap, &encounter)
 	if err != nil {
-		println("Error while decoding json")
-		println("Greska:", err.Error())
+		log.Printf("ERROR: Failed to decode JSON to struct: %v", err)
 		writer.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
 	err = handler.EncounterService.UpdateHiddenLocationEncounter(&encounter)
 	if err != nil {
-		println("Error while updating the encounter")
+		log.Printf("ERROR: Failed to update hidden location encounter: %v", err)
 		writer.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-
+	log.Printf("INFO: Updated hidden location encounter: %v", encounter)
 	writer.WriteHeader(http.StatusOK)
 	writer.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(writer).Encode(encounter)
@@ -316,59 +316,58 @@ func (handler *EncounterHandler) UpdateHiddenLocationEncounter(writer http.Respo
 
 func (handler *EncounterHandler) UpdateSocialEncounter(writer http.ResponseWriter, req *http.Request) {
 	var encounter model.SocialEncounter
-	log.Println("usao u update soc")
+	log.Println("INFO: Entered Update Social Encounter handler")
 	var encounterMap map[string]interface{}
 	err := json.NewDecoder(req.Body).Decode(&encounterMap)
 	if err != nil {
-		println("Error while parsing json")
-		println("Greska:", err.Error())
+		log.Printf("ERROR: Failed to parse JSON: %v", err)
 		writer.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	log.Println(encounterMap)
+	log.Printf("INFO: Parsed social encounter data: %v", encounterMap)
 	if id, ok := encounterMap["Id"].(string); ok {
 		objID, err := primitive.ObjectIDFromHex(id)
 		if err != nil {
-			println("Error converting ID to ObjectID")
+			log.Printf("ERROR: Failed to convert ID to ObjectID: %v", err)
 			writer.WriteHeader(http.StatusBadRequest)
 			return
 		}
 		encounterMap["Id"] = objID
-		log.Println(objID)
+		log.Printf("INFO: Converted ID to ObjectID: %v", objID)
 	}
 
 	err = mapstructure.Decode(encounterMap, &encounter)
 	if err != nil {
-		println("Error while decoding json")
-		println("Greska:", err.Error())
+		log.Printf("ERROR: Failed to decode JSON to struct: %v", err)
 		writer.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
 	err = handler.EncounterService.UpdateSocialEncounter(&encounter)
 	if err != nil {
-		println("Error while updating the encounter")
+		log.Printf("ERROR: Failed to update social encounter: %v", err)
 		writer.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-
+	log.Printf("INFO: Updated social encounter: %v", encounter)
 	writer.WriteHeader(http.StatusOK)
 	writer.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(writer).Encode(encounter)
 }
 
 func (handler *EncounterHandler) DeleteEncounter(writer http.ResponseWriter, req *http.Request) {
-	log.Println("usao u delete enc")
+	log.Println("INFO: Entered Delete Encounter handler")
 	vars := mux.Vars(req)
 	baseEncounterID := vars["baseEncounterId"]
-	log.Println(baseEncounterID)
+	log.Printf("INFO: Base Encounter ID to delete: %s", baseEncounterID)
 
 	err := handler.EncounterService.DeleteEncounter(baseEncounterID)
 	if err != nil {
-		log.Println("Error deleting encounter:", err)
+		log.Printf("ERROR: Error deleting encounter with ID %s: %v", baseEncounterID, err)
 		http.Error(writer, "Error deleting encounter", http.StatusInternalServerError)
 		return
 	}
+	log.Printf("INFO: Successfully deleted encounter with ID %s", baseEncounterID)
 
 	// Ako je brisanje uspešno, vraćamo status 204 No Content
 	writer.WriteHeader(http.StatusNoContent)
