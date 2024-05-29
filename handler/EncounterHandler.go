@@ -11,6 +11,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/mitchellh/mapstructure"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.opentelemetry.io/otel"
 )
 
 type EncounterHandler struct {
@@ -26,6 +27,10 @@ func (handler *EncounterHandler) Get(writer http.ResponseWriter, req *http.Reque
 
 func (handler *EncounterHandler) Create(writer http.ResponseWriter, req *http.Request) {
 	log.Println("INFO: Entered Create Encounter handler")
+	ctx := req.Context()
+	tracer := otel.Tracer("encounters-service")
+	_, span := tracer.Start(ctx, "CreateEncounter")
+	defer span.End()
 
 	var encounter model.Encounter
 	err := json.NewDecoder(req.Body).Decode(&encounter)
@@ -105,6 +110,10 @@ func (handler *EncounterHandler) CreateHiddenLocationEncounter(writer http.Respo
 
 func (h *EncounterHandler) GetAllEncounters(w http.ResponseWriter, r *http.Request) {
 	log.Println("INFO: Entered Get All Encounters handler")
+	ctx := r.Context()
+	tracer := otel.Tracer("encounters-service")
+	_, span := tracer.Start(ctx, "GetAllEncounters")
+	defer span.End()
 	encounters, err := h.EncounterService.GetAllEncounters()
 	if err != nil {
 		log.Printf("ERROR: Failed to get encounters: %v", err)
